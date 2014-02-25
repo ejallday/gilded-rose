@@ -1,22 +1,27 @@
+MAX_QUALITY = 50
+MIN_QUALITY = 0
+FIRST_BACKSTAGE_PASS_QUALITY_INCREASE_POINT = 10
+SECOND_BACKSTAGE_PASS_QUALITY_INCREASE_POINT = 5
+ONE_DAY = 1
 def update_quality(items)
   items.each do |item|
     if item.name != 'Aged Brie' && item.name != 'Backstage passes to a TAFKAL80ETC concert'
-      if item.quality > 0
+      if !expired?(item)
         if item.name != 'Sulfuras, Hand of Ragnaros'
           decrease_quality(item)
         end
       end
     else
-      if item.quality < 50
+      if not_pristine?(item)
         increase_quality(item)
         if item.name == 'Backstage passes to a TAFKAL80ETC concert'
-          if item.sell_in < 11
-            if item.quality < 50
+          if item.sell_in <= FIRST_BACKSTAGE_PASS_QUALITY_INCREASE_POINT
+            if not_pristine?(item)
               increase_quality(item)
             end
           end
-          if item.sell_in < 6
-            if item.quality < 50
+          if item.sell_in <= SECOND_BACKSTAGE_PASS_QUALITY_INCREASE_POINT
+            if not_pristine?(item)
               increase_quality(item)
             end
           end
@@ -24,12 +29,12 @@ def update_quality(items)
       end
     end
     if item.name != 'Sulfuras, Hand of Ragnaros'
-      item.sell_in -= 1
+      turn_clock_one_day!(item)
     end
-    if item.sell_in < 0
+    if passed_expiration_date?(item)
       if item.name != "Aged Brie"
         if item.name != 'Backstage passes to a TAFKAL80ETC concert'
-          if item.quality > 0
+          if !expired?(item)
             if item.name != 'Sulfuras, Hand of Ragnaros'
               decrease_quality(item)
             end
@@ -38,7 +43,7 @@ def update_quality(items)
           item.quality = item.quality - item.quality
         end
       else
-        if item.quality < 50
+        if not_pristine?(item)
           increase_quality(item)
         end
       end
@@ -52,6 +57,22 @@ end
 
 def decrease_quality(item)
   item.quality -= 1
+end
+
+def not_pristine?(item)
+  item.quality < MAX_QUALITY
+end
+
+def expired?(item)
+  item.quality == MIN_QUALITY
+end
+
+def turn_clock_one_day!(item)
+  item.sell_in -= ONE_DAY
+end
+
+def passed_expiration_date?(item)
+  item.sell_in < 0
 end
 # DO NOT CHANGE THINGS BELOW -----------------------------------------
 
