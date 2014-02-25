@@ -32,19 +32,19 @@ def update_quality(items)
       turn_clock_one_day!(item)
     end
     if passed_optimum_sale_date?(item)
-      if item.name != "Aged Brie"
-        if item.name != 'Backstage passes to a TAFKAL80ETC concert'
-          if !expired?(item)
-            if item.name != 'Sulfuras, Hand of Ragnaros'
-              decrease_quality(item)
-            end
-          end
-        else
-          item.quality = item.quality - item.quality
-        end
-      else
-        if not_pristine?(item)
-          increase_quality(item)
+      if item.name == 'Aged Brie'
+        increase_quality(item) if not_pristine?(item)
+        next
+      end
+
+      if item.name == 'Backstage passes to a TAFKAL80ETC concert'
+        item.quality = item.quality - item.quality
+        next
+      end
+
+      if !expired?(item)
+        if item.name != 'Sulfuras, Hand of Ragnaros'
+          decrease_quality(item)
         end
       end
     end
