@@ -1,79 +1,115 @@
-MAX_QUALITY = 50
-MIN_QUALITY = 0
-FIRST_BACKSTAGE_PASS_QUALITY_INCREASE_POINT = 10
-SECOND_BACKSTAGE_PASS_QUALITY_INCREASE_POINT = 5
-ONE_DAY = 1
-def update_quality(items)
-  items.each do |item|
-    if item.name != 'Aged Brie' && item.name != 'Backstage passes to a TAFKAL80ETC concert'
-      if !expired?(item)
-        if item.name != 'Sulfuras, Hand of Ragnaros'
-          decrease_quality(item)
-        end
-      end
-    else
-      if not_pristine?(item)
-        increase_quality(item)
-        if item.name == 'Backstage passes to a TAFKAL80ETC concert'
-          if item.sell_in <= FIRST_BACKSTAGE_PASS_QUALITY_INCREASE_POINT
-            if not_pristine?(item)
-              increase_quality(item)
-            end
-          end
-          if item.sell_in <= SECOND_BACKSTAGE_PASS_QUALITY_INCREASE_POINT
-            if not_pristine?(item)
-              increase_quality(item)
-            end
-          end
-        end
-      end
-    end
-    if item.name != 'Sulfuras, Hand of Ragnaros'
-      turn_clock_one_day!(item)
-    end
-    if passed_optimum_sale_date?(item)
-      if item.name == 'Aged Brie'
-        increase_quality(item) if not_pristine?(item)
-        next
-      end
-
-      if item.name == 'Backstage passes to a TAFKAL80ETC concert'
-        item.quality = item.quality - item.quality
-        next
-      end
-
-      if !expired?(item)
-        if item.name != 'Sulfuras, Hand of Ragnaros'
-          decrease_quality(item)
-        end
-      end
+class ItemFactory
+  def self.build(item)
+    case item.name
+    when /Backstage/ then BackstagePasses.new(item)
+    when /Conjured/ then ConjuredItem.new(item)
+    when /Sulfuras/ then Sulfuras.new(item)
+    when /Aged Brie/ then AgedBrie.new(item)
+    else StandardItem.new(item)
     end
   end
 end
 
-def increase_quality(item)
-  item.quality += 1
+class StandardItem < Struct.new(:item)
+  MAX_QUALITY = 50
+  MIN_QUALITY = 0
+  ONE_DAY = 1
+
+  def update
+    turn_clock_one_day!
+    update_quality
+  end
+
+  private
+
+  def update_quality
+    return if expired?
+    decrease_quality
+    decrease_quality if passed_optimum_sale_date? && !expired?
+  end
+
+  def increase_quality
+    item.quality += 1
+  end
+
+  def decrease_quality
+    item.quality -= 1
+  end
+
+  def pristine?
+    item.quality >= MAX_QUALITY
+  end
+
+  def expired?
+    item.quality == MIN_QUALITY
+  end
+
+  def turn_clock_one_day!
+    item.sell_in -= ONE_DAY
+  end
+
+  def passed_optimum_sale_date?
+    item.sell_in < 0
+  end
 end
 
-def decrease_quality(item)
-  item.quality -= 1
+class Sulfuras < StandardItem
+  def update_quality
+  end
+
+  def turn_clock_one_day!
+  end
 end
 
-def not_pristine?(item)
-  item.quality < MAX_QUALITY
+class AgedBrie < StandardItem
+  def update_quality
+    return if pristine?
+    increase_quality
+    increase_quality if passed_optimum_sale_date? && !pristine?
+  end
 end
 
-def expired?(item)
-  item.quality == MIN_QUALITY
+class BackstagePasses < StandardItem
+  FIRST_QUALITY_INCREASE_POINT = 10
+  SECOND_QUALITY_INCREASE_POINT = 5
+
+  def update_quality
+    return if pristine?
+    case
+    when concert_over? then item.quality = 0
+    when past_second_demand_increase? then item.quality += 3
+    when past_first_demand_increase? then item.quality += 2
+    else item.quality += 1
+    end
+  end
+
+  private
+
+  def concert_over?
+    passed_optimum_sale_date?
+  end
+
+  def past_first_demand_increase?
+    item.sell_in < FIRST_QUALITY_INCREASE_POINT
+  end
+
+  def past_second_demand_increase?
+    item.sell_in < SECOND_QUALITY_INCREASE_POINT
+  end
 end
 
-def turn_clock_one_day!(item)
-  item.sell_in -= ONE_DAY
+class ConjuredItem < StandardItem
+  def decrease_quality
+    item.quality -= 2
+  end
 end
 
-def passed_optimum_sale_date?(item)
-  item.sell_in < 0
+def update_quality(items)
+  items.each do |item|
+    ItemFactory.build(item).update
+  end
 end
+
 # DO NOT CHANGE THINGS BELOW -----------------------------------------
 
 Item = Struct.new(:name, :sell_in, :quality)
