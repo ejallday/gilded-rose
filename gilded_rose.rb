@@ -31,7 +31,7 @@ def update_quality(items)
     if item.name != 'Sulfuras, Hand of Ragnaros'
       turn_clock_one_day!(item)
     end
-    if passed_expiration_date?(item)
+    if passed_optimum_sale_date?(item)
       if item.name != "Aged Brie"
         if item.name != 'Backstage passes to a TAFKAL80ETC concert'
           if !expired?(item)
@@ -71,7 +71,7 @@ def turn_clock_one_day!(item)
   item.sell_in -= ONE_DAY
 end
 
-def passed_expiration_date?(item)
+def passed_optimum_sale_date?(item)
   item.sell_in < 0
 end
 # DO NOT CHANGE THINGS BELOW -----------------------------------------
